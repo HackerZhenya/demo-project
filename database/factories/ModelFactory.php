@@ -34,10 +34,14 @@ $factory->define(App\Person::class, function (Faker\Generator $faker) {
 });
 
 $factory->define(App\Post::class, function (Faker\Generator $faker) {
+    $time = $faker->date() . " " . $faker->time();
+
     return [
         'person_id' => $faker->numberBetween(1, 100),
         'head' => $faker->sentence,
         'body' => $faker->realText(),
-        'published' => $faker->boolean(80)
+        'published' => $faker->boolean(80),
+        'created_at' => $time,
+        'updated_at' => $time
     ];
 });

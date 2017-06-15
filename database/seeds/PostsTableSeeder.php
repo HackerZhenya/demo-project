@@ -11,6 +11,6 @@ class PostsTableSeeder extends Seeder
      */
     public function run()
     {
-        factory(App\Post::class, 1000)->create(); // 100k постов
+        factory(App\Post::class, 1000000)->create(); // 100k постов
     }
 }

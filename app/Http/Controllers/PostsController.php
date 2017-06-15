@@ -15,18 +15,42 @@ class PostsController extends Controller
      */
     public function index(Request $request)
     {
-        $instance = [
-            "limit" => $request->input("limit", "25"),
-            "showUnpublished" => $request->input("showUnpublished", "false"),
+        $saved = [
+            "inputIdSince" => $request->input("inputIdSince"),
+            "inputIdBefore" => $request->input("inputIdBefore"),
+            "inputHead" => $request->input("inputHead"),
+            "inputBody" => $request->input("inputBody"),
+            "hideUnpublished" => $request->input("hideUnpublished"),
+            "highlightUnpublished" => $request->input("highlightUnpublished"),
+            "postsPerPage" => $request->input("postsPerPage", "25")
         ];
 
-        $posts = Post::orderBy("id", "desc")->paginate((int)$instance["limit"]);
+        $posts = Post::latest()
+            ->idSince($saved["inputIdSince"])
+            ->idBefore($saved["inputIdBefore"])
+            ->headContains($saved["inputHead"])
+            ->bodyContains($saved["inputBody"])
+            ->published((bool)$saved["hideUnpublished"]);
+
+        $filteredCount = $posts->count();
+        $posts = $posts->paginate((int)$saved["postsPerPage"]);
+
+
+        $saved = array_where($saved, function ($value) {
+            return strlen(trim($value)) > 0;
+        });
 
         return view("page.posts.index", [
             "count" => Post::count(),
+            "filteredCount" => $filteredCount,
             "posts" => $posts,
-            "pagination" => $posts->appends($instance)->links()
+            "pagination" => $posts->appends($saved)->links()
         ]);
+    }
+
+    public function json(Request $request)
+    {
+         return Post::latest()->paginate();
     }
 
     /**
@@ -129,6 +153,13 @@ class PostsController extends Controller
     public function destroy(Post $post)
     {
         $post->delete();
-        return redirect(route("posts.index"))->withMessage("Post #".$post->id." successfully deleted");
+
+        if ( starts_with(str_after(url()->previous(), route('posts.index')), "/") ) { // is not 'posts.index'
+            $redirect = redirect(route("posts.index"));
+        } else {
+            $redirect = redirect()->back();
+        }
+
+        return $redirect->withMessage("Post #".$post->id." successfully deleted");
     }
 }

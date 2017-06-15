@@ -64,7 +64,7 @@
                         <div class="col-sm-offset-2 col-sm-10">
                             <div class="checkbox">
                                 <label>
-                                    <input type="checkbox" name="isDraft" value="true" @if((bool)old("isDraft")) checked @endif> Draft
+                                    <input type="checkbox" name="isDraft" value="true" @if(!$post->published) checked @endif> Draft
                                 </label>
                             </div>
                         </div>

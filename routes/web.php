@@ -25,9 +25,9 @@ Route::get("/posts/{post}/delete", [
     "uses" => "PostsController@destroy"
 ]);
 
-Route::resource("posts", "PostsController", ['except' => [ 'update', 'destroy' ]]);
-
 Route::get("/posts/json", [
     "as" => "posts.json",
     "uses" => "PostsController@json"
 ]);
+
+Route::resource("posts", "PostsController", ['except' => [ 'update', 'destroy' ]]);

@@ -26,27 +26,77 @@
 
     <div class="row">
         <div class="col-md-4">
-
             <div class="well">
-                <h4>Filters</h4>
+                <h4>Filters (found {{ $filteredCount }} posts)</h4>
 
-                <div class="checkbox">
-                    <label>
-                        <input type="checkbox" id="showUnpublishedPosts"> Show unpublished posts
-                    </label>
-                </div>
+                <form class="form-horizontal" action="{{ route("posts.index") }}">
+                    <div class="form-group">
+                        <label for="inputID" class="col-sm-3 control-label">#ID</label>
+                        <div class="col-sm-9">
+                            <div class="input-group">
+                                <span class="input-group-addon">since</span>
+                                <input type="text" id="inputID" name="inputIdSince" class="form-control need-apply" placeholder="1" value="{{ request("inputIdSince") }}">
+                                <span class="input-group-addon">before</span>
+                                <input type="text" name="inputIdBefore" class="form-control need-apply" placeholder="{{ $count }}" value="{{ request("inputIdBefore") }}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="inputHead" class="col-sm-3 control-label">'Head' contains</label>
+                        <div class="col-sm-9">
+                            <input type="text" id="inputHead" name="inputHead" class="form-control need-apply" placeholder="Some word" value="{{ request("inputHead") }}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="inputBody" class="col-sm-3 control-label">'Body' contains</label>
+                        <div class="col-sm-9">
+                            <input type="text" id="inputBody" name="inputBody" class="form-control need-apply" placeholder="Some word" value="{{ request("inputBody") }}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="highlightUnpublished" class="col-sm-3 control-label">Unpublished</label>
+                        <div class="col-sm-9">
+                            <div class="checkbox">
+                                <label>
+                                    <input type="checkbox" id="hideUnpublished" class="need-apply" name="hideUnpublished" value="true" @if ((bool)request("hideUnpublished")) checked @endif> Hide posts
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-sm-offset-3 col-sm-9">
+                            <div class="checkbox">
+                                <label>
+                                    <input type="checkbox" id="highlightUnpublished" name="highlightUnpublished" value="true" id="showUnpublishedPosts" @if ((bool)request("highlightUnpublished")) checked @endif> Highlight posts
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="postsPerPage" class="col-sm-3 control-label need-apply">Posts per page</label>
+                        <div class="col-sm-9">
+                            <select class="form-control" id="postsPerPage" name="postsPerPage" data-value="{{ request("postsPerPage", 25) }}">
+                                <option value="25">25 posts</option>
+                                <option value="50">50 posts</option>
+                                <option value="75">75 posts</option>
+                                <option value="100">100 posts</option>
+                            </select>
+                        </div>
+                    </div>
 
-                <div class="input-group">
-                    <span class="input-group-addon">Posts per page</span>
-                    <select class="form-control" id="postsPerPage">
-                        <option value="25">25</option>
-                        <option value="50">50</option>
-                        <option value="75">75</option>
-                        <option value="100">100</option>
-                    </select>
-                </div>
+                    <div class="form-group">
+                        <div class="col-sm-offset-3 col-sm-9">
+                            <span class="help-block">If the field is empty, the filter will not be applied</span>
+                        </div>
+                    </div>
 
-                <hr style="border-top: 1px solid #cacaca;">
+                    <div class="form-group">
+                        <div class="col-sm-offset-3 col-sm-9">
+                            <button id="applyChangesButton" type="submit" class="btn btn-default" style="margin-right: 10px">Apply filters</button>
+                            <span id="applyChangesText" class="text-primary" style="display: none">You need to apply changes</span>
+                        </div>
+                    </div>
+                </form>
 
             </div>
         </div>
@@ -63,7 +113,7 @@
                     <th>Author</th>
                     <th>Head</th>
                     <th>Body</th>
-                    <th>Time</th>
+                    <th>Time <span class="glyphicon glyphicon-chevron-up"></span></th>
                     <th width="170px">Action</th>
                 </tr>
                 </thead>
@@ -99,40 +149,45 @@
         }
 
         $(document).ready(function() {
-            // ============================== [Filter] Posts per page ==============================
-            var paramLimit = new URL(window.location.href).searchParams.get("limit");
+            $("#hideUnpublished").change(function() {
+                var state = $("#hideUnpublished").prop("checked");
 
-            if (paramLimit !== null) {
-                if ($("select#postsPerPage > option[value="+paramLimit+"]")[0] !== undefined) {
-                    $("select#postsPerPage > option[value="+paramLimit+"]").attr("selected", true);
-                } else {
-                    $("select#postsPerPage").prepend("<option value='"+paramLimit+"' selected>Custom value ("+paramLimit+" posts)</option>");
-                }
-            }
+                if (state)
+                    $("#highlightUnpublished").prop("disabled", true).prop("checked", false);
+                else
+                    $("#highlightUnpublished").prop("disabled", false);
 
-            $("select#postsPerPage").change(function() {
-                var limit = $("select#postsPerPage :selected").val();
-                updateQuery($.query.set("limit", limit));
-                window.location.reload();
+                $("#highlightUnpublished").change();
             });
 
-            // ============================== [Filter] Show Unpublished ==============================
-            $("#showUnpublishedPosts").change(function() {
-                if ($("#showUnpublishedPosts").prop("checked")) {
+            $("#highlightUnpublished").change(function() {
+                var state = $("#highlightUnpublished").prop("checked");
+
+                if (state)
                     $(".unpublished").addClass("danger");
-                    updateQuery($.query.set("showUnpublished", "true"));
-                } else {
+                else
                     $(".unpublished").removeClass("danger");
-                    updateQuery($.query.set("showUnpublished", "false"));
-                }
+
+                updateQuery($.query.set("highlightUnpublished", state.toString()));
             });
 
-            if ($.query.get("showUnpublished") == "true") {
-                $("#showUnpublishedPosts").prop("checked", true)
-            } else {
-                $("#showUnpublishedPosts").prop("checked", false)
+
+            var postsPerPage = $("select#postsPerPage").data("value");
+            if (postsPerPage !== null) {
+                if ($("select#postsPerPage > option[value="+postsPerPage+"]")[0] !== undefined) {
+                    $("select#postsPerPage > option[value="+postsPerPage+"]").attr("selected", true);
+                } else {
+                    $("select#postsPerPage").prepend("<option value='"+postsPerPage+"' selected>Custom value ("+postsPerPage+" posts)</option>");
+                }
             }
-            $("#showUnpublishedPosts").change();
+
+            $("#highlightUnpublished").change();
+            $("#hideUnpublished").change();
+
+            $(".need-apply").change(function() {
+                $("#applyChangesButton").removeClass("btn-default").addClass("btn-primary");
+                $("#applyChangesText").show();
+            });
         });
     </script>
 @endsection
