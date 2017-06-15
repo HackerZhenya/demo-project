@@ -4,7 +4,10 @@ namespace App\Exceptions;
 
 use Exception;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class Handler extends ExceptionHandler
 {
@@ -44,7 +47,53 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Exception $exception)
     {
+        if ($this->isHttpException($exception))
+        {
+            return $this->renderHttpException($exception);
+            return $this->renderHttpExceptionWithBlade($exception);
+        }
+
+        if ($exception instanceof ModelNotFoundException) {
+            return $this->renderHttpExceptionWithBlade(new NotFoundHttpException("Model not found"));
+        }
+
+        if (config('app.debug') && !($exception instanceof ValidationException))
+        {
+            return $this->renderExceptionWithWhoops($exception);
+        }
+
         return parent::render($request, $exception);
+    }
+
+    /**
+     * Render an exception using Whoops.
+     *
+     * @param  \Exception $exception
+     * @return \Illuminate\Http\Response
+     */
+    protected function renderExceptionWithWhoops(Exception $exception)
+    {
+        $whoops = new \Whoops\Run;
+        $whoops->pushHandler(new \Whoops\Handler\PrettyPageHandler());
+
+        return new \Illuminate\Http\Response(
+            $whoops->handleException($exception),
+            $exception->getStatusCode(),
+            $exception->getHeaders()
+        );
+    }
+
+    /**
+     * Render an http exception.
+     *
+     * @param  \Exception $exception
+     * @return \Illuminate\Http\Response
+     */
+    protected function renderHttpExceptionWithBlade(Exception $exception)
+    {
+        $status = $exception->getStatusCode();
+        $template = (view()->exists("errors::{$status}")) ? "errors::{$status}" : "errors.error";
+        return response()->view($template, ['exception' => $exception], $status, $exception->getHeaders());
     }
 
     /**

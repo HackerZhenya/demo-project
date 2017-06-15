@@ -12,5 +12,22 @@
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route("posts.index");
 });
+
+Route::post("/posts/{post}/update", [
+    "as" => "posts.update",
+    "uses" => "PostsController@update"
+]);
+
+Route::get("/posts/{post}/delete", [
+    "as" => "posts.destroy",
+    "uses" => "PostsController@destroy"
+]);
+
+Route::resource("posts", "PostsController", ['except' => [ 'update', 'destroy' ]]);
+
+Route::get("/posts/json", [
+    "as" => "posts.json",
+    "uses" => "PostsController@json"
+]);
